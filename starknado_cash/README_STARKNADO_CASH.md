@@ -1,5 +1,11 @@
 # starknado cash
 
+> For Nethermind team: addresses of the deployed contracts
+
+> Verifier [0x03fccef14896283163799b884d2aa2ca85af2b84c012bf99cccfe6cbc4ef3c17](https://sepolia.voyager.online/contract/0x03fccef14896283163799b884d2aa2ca85af2b84c012bf99cccfe6cbc4ef3c17)
+
+> Pool [0x0239d646891ee20f88e3f611f8acb627cf3a2195893b423ba2da6a021bf0a6bc](https://sepolia.voyager.online/contract/0x0239d646891ee20f88e3f611f8acb627cf3a2195893b423ba2da6a021bf0a6bc#accountCalls)
+
 ## compile circuit:
 
 `circom withdraw.circom --r1cs --wasm --sym --c`
@@ -69,9 +75,38 @@ cd ..
 garaga verify-onchain --system groth16 --contract-address 0x03fccef14896283163799b884d2aa2ca85af2b84c012bf99cccfe6cbc4ef3c17 --vk verification_key.json --proof proof.json --public-inputs public.json --env-file .secrets --network sepolia
 ```
 
-HAsh:
-public_inputs: ['1']
-Transaction hash : 0x1367e42481093a9c688a4e1eb4b8830bcfe8f22ed1c338d18a7089fe064ccaa
-Check it out on
-https://sepolia.voyager.online/tx/0x1367e42481093a9c688a4e1eb4b8830bcfe8f22ed1c338d18a70
-89fe064ccaa
+## declare and deploy pool contract
+
+declare:
+
+```bash
+starkli declare target/dev/starknado_zk_2_Pool.contract_class.json --account account.json --keystore keystore.json
+#class hash: 0x004dd2b672cac7e7fb91f96eb272faf86e81254c80ea763f5d72d583e6d3753d
+```
+
+deploy:
+
+```bash
+#class hash, token address-I use STRK,verifier contract
+starkli deploy 0x004dd2b672cac7e7fb91f96eb272faf86e81254c80ea763f5d72d583e6d3753d 0x04718f5a0Fc34cC1AF16A1cdee98fFB20C31f5cD61D6Ab07201858f4287c938D 0x03fccef14896283163799b884d2aa2ca85af2b84c012bf99cccfe6cbc4ef3c17 --account account.json --keystore keystore.json
+#contract deployed!!!
+#0x0239d646891ee20f88e3f611f8acb627cf3a2195893b423ba2da6a021bf0a6bc
+```
+
+## generate calldata
+
+You need to run this script: https://github.com/keep-starknet-strange/garaga/blob/main/hydra/garaga/starknet/groth16_contract_generator/calldata.py
+
+## call deposit
+
+```bash
+starkli invoke 0x0239d646891ee20f88e3f611f8acb627cf3a2195893b423ba2da6a021bf0a6bc deposit <YOUR_COMMITMEN_HASH> <YOUR_GEN_CALLDATA> 1 -account account.json --keystore keystore.json
+```
+
+## call withdraw
+
+commitmenthash: Span<felt252>, amount: u256, secret: felt252
+
+```bash
+starkli invoke 0x0239d646891ee20f88e3f611f8acb627cf3a2195893b423ba2da6a021bf0a6bc withdraw  <YOUR_GEN_CALLDATA>  1 <YOUR_COMMITMEN_HASH>  -account account.json --keystore keystore.json
+```
