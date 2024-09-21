@@ -77,7 +77,7 @@ use starknet::storage::StoragePointerReadAccess;
         // should accept the amount, the commitmenthas and the secret
         // should invoke the verifier
         fn withdraw(ref self: ContractState, commitmenthash: felt252, secret: felt252, proof:Span<felt252>) -> bool{
-            // todo make sure I cannot recall this with the same proof
+            // trying to achieve CEX pattern
             let amount = self.commitment_hash_to_amount.entry(commitmenthash).read();
             if(amount == 0){
                 panic!("amount is not enough")
