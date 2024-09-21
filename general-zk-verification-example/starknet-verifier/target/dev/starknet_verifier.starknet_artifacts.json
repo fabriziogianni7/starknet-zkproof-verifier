@@ -1,0 +1,1 @@
+{"version":1,"contracts":[{"id":"dgjdthfeeodv6","package_name":"starknet_verifier","contract_name":"Groth16VerifierBN254","module_path":"starknet_verifier::groth16_verifier::Groth16VerifierBN254","artifacts":{"sierra":"starknet_verifier_Groth16VerifierBN254.contract_class.json","casm":"starknet_verifier_Groth16VerifierBN254.compiled_contract_class.json"}}]}
