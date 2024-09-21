@@ -21,6 +21,7 @@ It contains:
   - [Generate zk-SNARK Proof](#generate-zk-snark-proof)
   - [Verify zk-SNARK Proof on Starknet](#verify-zk-snark-proof-on-starknet)
 - [Starknado Cash](#starknado-cash)
+  - [Starknado cash user story](#starknado-cash-user-story)
   - [Compiling the Circuit](#compiling-the-circuit)
   - [Generate zk-SNARK Proof](#generate-zk-snark-proof-1)
   - [Verifier Deployment](#verifier-deployment)
@@ -159,7 +160,13 @@ In this section, we demonstrate how to use circuits to create and verify zk-SNAR
 
 ## Starknado Cash
 
-Starknado Cash demonstrates how to send private transactions on Starknet using zk-SNARKs in a Tornado Cash-like style.
+Starknado Cash demonstrates how to send private transactions on Starknet using zk-SNARKs in a Tornado Cash-like style. 
+
+### Starknado cash user story
+- user A deposit STRK in pool.cairo, providing a commitment hash derived from a secret (possibly made off-chain with a [tool like that](https://poseidon-hash.online/))
+- user A generate proof with commitment hash as public input and secret as private input
+- user A send proof to user B
+- user B uses commitment hash and proof to withdraw the tokens
 
 ### Compiling the Circuit
 
