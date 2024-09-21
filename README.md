@@ -1,330 +1,258 @@
-# starknet-zkproof-verifier
+# Starknet zkProof Verifier
 
-This repo shows how to verify zk-SNARKs on starknet using [circom](https://docs.circom.io/) and [garaga](https://felt.gitbook.io/garaga)
+This repository demonstrates how to verify zk-SNARKs on Starknet using [Circom](https://docs.circom.io/) and [Garaga](https://felt.gitbook.io/garaga).
 
-there is one [folder](https://github.com/fabriziogianni7/starknet-zkproof-verifier/tree/master/general-zk-verification-example) with a general example and another folder tryng to implement [tornado cash](https://github.com/tornadocash) on Starknet
+It contains:
+- A [general example](https://github.com/fabriziogianni7/starknet-zkproof-verifier/tree/master/general-zk-verification-example) of zk-SNARK verification.
+- An implementation of [Tornado Cash](https://github.com/tornadocash) on Starknet.
 
-### Folder general-zk-verification-example
+---
 
-In this folder I demonstrate how to use circuits to create and verify zk SNARKs on starknet.
+## Table of Contents
+- [General zk-SNARK Verification Example](#general-zk-snark-verification-example)
+  - [Create a Circuit](#create-a-circuit)
+  - [Generate Witness](#generate-witness)
+  - [Trusted Setup](#trusted-setup)
+  - [Generate zk-SNARK Proof](#generate-zk-snark-proof)
+  - [Verify zk-SNARK Proof on Starknet](#verify-zk-snark-proof-on-starknet)
+- [Starknado Cash](#starknado-cash)
+  - [Compiling the Circuit](#compiling-the-circuit)
+  - [Generate zk-SNARK Proof](#generate-zk-snark-proof-1)
+  - [Verifier Deployment](#verifier-deployment)
+  - [Pool Contract Deployment](#pool-contract-deployment)
+  - [Call Deposit](#call-deposit)
+  - [Call Withdraw](#call-withdraw)
 
-Please, find the documentatiodeployed contract addresses below
+---
 
-<details>
-<summary>All the steps necessary to verify a zk proof on Starknet</summary>
+## General zk-SNARK Verification Example
 
-> For Nethermind team: addresses of the deployed contracts
+In this section, we demonstrate how to use circuits to create and verify zk-SNARKs on Starknet.
 
-> Verifier [0x05a45ee09946804dfe21c3da0448cd9efcd6971d3eed4efacc866e17f1d38f2d](https://sepolia.voyager.online/contract/0x05a45ee09946804dfe21c3da0448cd9efcd6971d3eed4efacc866e17f1d38f2d)
+### Create a Circuit
 
-## create a circuit:
+1. Create a file called `multiplier.circom` with the following code:
 
-create a file called multiplier.circom with the following code:
+    ```c++
+    pragma circom 2.0.0;
 
-```c++
-pragma circom 2.0.0;
+    template Multiplier2 () {
+      signal input a;
+      signal input b;
+      signal output c;
 
-/_This circuit template checks that c is the multiplication of a and b._/
+      c <== a * b;
+    }
 
-template Multiplier2 () {
+    component main = Multiplier2();
+    ```
 
-// Declaration of signals.
- signal input a;
- signal input b;
- signal output c;
+2. Compile the circuit:
 
-// Constraints.
- c <== a \* b;
-}
+    ```bash
+    circom multiplier.circom --r1cs --wasm --sym --c
+    ```
 
-component main = Multiplier2();
+### Generate Witness
 
-```
+1. Navigate to the generated JS folder and generate the witness (a set of inputs, intermediate signals, and outputs):
 
-then compile it
+    ```bash
+    cd multiplier_js
+    node generate_witness.js multiplier.wasm input.json witness.wtns
+    ```
 
-```bash
-circom multiplier.circom --r1cs --wasm --sym --c
-```
+### Trusted Setup
 
-generate witness (the witness is set of inputs, intermediate signals, and output):
+1. Initialize the powers of tau:
 
-```bash
-cd multiplier_js && node generate_witness.js multiplier.wasm input.json witness.wtns
-```
+    ```bash
+    snarkjs powersoftau new bn128 12 pot12_0000.ptau -v
+    ```
 
-we'll use the witness to generate the actual proof
+2. Contribute to the ceremony:
 
-### trusted setup:
+    ```bash
+    snarkjs powersoftau contribute pot12_0000.ptau pot12_0001.ptau --name="First contribution" -v
+    ```
 
-powers of tau:
+3. Prepare for phase 2:
 
-```bash
-snarkjs powersoftau new bn128 12 pot12_0000.ptau -v
-```
+    ```bash
+    snarkjs powersoftau prepare phase2 pot12_0001.ptau pot12_final.ptau -v
+    ```
 
-ceremony:
+4. Generate the `.zkey`:
 
-```bash
-snarkjs powersoftau contribute pot12_0000.ptau pot12_0001.ptau --name="First contribution" -v
-```
+    ```bash
+    snarkjs groth16 setup multiplier.r1cs pot12_final.ptau multiplier_0000.zkey
+    ```
 
-phase 2:
+5. Contribute to phase 2:
 
-```bash
-snarkjs powersoftau prepare phase2 pot12_0001.ptau pot12_final.ptau -v
-```
+    ```bash
+    snarkjs zkey contribute multiplier_0000.zkey multiplier_0001.zkey --name="1st Contributor" -v
+    ```
 
-generating .zkey
+6. Export the verification key:
 
-```bash
-snarkjs groth16 setup multiplier.r1cs pot12_final.ptau multiplier_0000.zkey
-```
+    ```bash
+    snarkjs zkey export verificationkey multiplier_0001.zkey verification_key.json
+    ```
 
-contributing to phase 2 of ceremony:
+### Generate zk-SNARK Proof
 
-```bash
-snarkjs zkey contribute multiplier_0000.zkey multiplier_0001.zkey --name="1st Contributor Name" -v
-```
+1. Generate the zk-SNARK proof:
 
-export verification key:
+    ```bash
+    snarkjs groth16 prove multiplier_0001.zkey witness.wtns proof.json public.json
+    ```
 
-```bash
-snarkjs zkey export verificationkey multiplier_0001.zkey verification_key.json
-```
+### Verify zk-SNARK Proof on Starknet
 
-once the witness is computed and the trusted setup is already executed, we can generate a zk-proof associated to the circuit and the witness:
-(copy witness.wtns to from multiplier_js folder)
+1. Install Garaga by following the [Garaga installation guide](https://github.com/keep-starknet-strange/garaga?tab=readme-ov-file#quickstart--deploying-a-snark-verifier-on-starknet).
 
-```bash
-snarkjs groth16 prove multiplier_0001.zkey witness.wtns proof.json public.json
-```
+2. Generate the verifier contracts:
 
-## Verify proof on Starknet
+    ```bash
+    garaga gen --vk verification_key.json --system groth16
+    ```
 
-### Install Garaga
+3. Compile the contracts:
 
-install garaga:
+    ```bash
+    scarb build
+    ```
 
-> to install garaga, follow these steps: https://github.com/keep-starknet-strange/garaga?tab=readme-ov-file#quickstart--deploying-a-snark-verifier-on-starknet
+4. Deploy a new account:
 
-generate verifier contracts
+    ```bash
+    starkli signer keystore new keystore.json
+    starkli account oz init account.json
+    starkli account deploy account.json
+    ```
 
-```bash
-garaga gen --vk verification_key.json --system groth16
-```
+5. Declare the contract:
 
-## use sepolia to deploy the verifier
+    ```bash
+    starkli declare target/dev/starknet_verifier_Groth16VerifierBN254.contract_class.json --compiler-version 2.7.1 --account account.json --max-fee-raw 28933655926062819
+    ```
 
-export starknet rpc
+6. Deploy the contract:
 
-```bash
-export STARKNET_RPC="https://starknet-sepolia.public.blastapi.io/rpc/v0_7"
-```
+    ```bash
+    starkli deploy 0x06b7a9973d468fe9cd9fcd2548d04a0acf1b2656ead771ebc2a1d4efda60adbe
+    ```
 
-compile contracts
+7. Verify the proof on-chain:
 
-```bash
-scarb build
-```
+    ```bash
+    garaga verify-onchain --system groth16 --contract-address 0x05a45ee09946804dfe21c3da0448cd9efcd6971d3eed4efacc866e17f1d38f2d --vk verification_key.json --proof proof.json --public-inputs public.json --env-file .secrets --network sepolia
+    ```
 
-deploy new account account
+---
 
-```bash
-starkli signer keystore new keystore.json # do it if you don't have a keystore yet
-export STARKNET_KEYSTORE="/path/to/keysore/keystore.json"
-starkli account oz init account.json
-starkli account deploy account.json
+## Starknado Cash
 
-```
+Starknado Cash demonstrates how to send private transactions on Starknet using zk-SNARKs in a Tornado Cash-like style.
 
-> you need to send money to the new deployed account, in order to declare and deploy the contract
+### Compiling the Circuit
 
-declare contract:
+1. Create a `withdraw.circom` file with the following content:
 
-```bash
-starknet-verifier % starkli declare target/dev/starknet_verifier_Groth16VerifierBN254.contract_class.json --compiler-version 2.7.1 --account account.json --max-fee-raw 28933655926062819
-#class hash: 0x06b7a9973d468fe9cd9fcd2548d04a0acf1b2656ead771ebc2a1d4efda60adbe
-```
+    ```c++
+    pragma circom 2.0.0;
+    include "circomlib/circuits/poseidon.circom";
 
-deploy contract:
+    template Withdraw() {
+      signal input commitmentHash;
+      signal input nullifier;
+      signal output validWithdrawal;
 
-```bash
-starkli deploy 0x06b7a9973d468fe9cd9fcd2548d04a0acf1b2656ead771ebc2a1d4efda60adbe
-# deployed: 0x05a45ee09946804dfe21c3da0448cd9efcd6971d3eed4efacc866e17f1d38f2d
-```
+      signal computedCommitment;
+      component poseidon = Poseidon(1);
+      poseidon.inputs[0] <== nullifier;
+      computedCommitment <== poseidon.out;
 
-generate calldata (verify proof):
+      signal difference;
+      difference <== computedCommitment - commitmentHash;
+      validWithdrawal <== 1 - difference * difference;
+    }
 
-```bash
-garaga verify-onchain --system groth16 --contract-address 0x05a45ee09946804dfe21c3da0448cd9efcd6971d3eed4efacc866e17f1d38f2d --vk verification_key.json --proof proof.json --public-inputs public.json --env-file .secrets --network sepolia
-```
+    component main {public [commitmentHash]} = Withdraw();
+    ```
 
-</details>
+2. Compile the circuit:
 
-### Folder starknado-cash
+    ```bash
+    circom withdraw.circom --r1cs --wasm --sym --c
+    ```
 
-In this folder I demonstrate how to send private transaction in a tornado-cash style on starknet using zk-SNARKs
+3. Generate the witness:
 
-Please, find the documentation and deployed contract addresses below
+    ```bash
+    cd withdraw_js
+    node generate_witness.js withdraw.wasm input.json witness.wtns
+    ```
 
-<details>
-<summary>See how starknado-cash can work on starknet</summary>
+### Generate zk-SNARK Proof
 
-# starknado cash
+1. Follow the same trusted setup and `.zkey` generation steps as described in the [General zk-SNARK Verification Example](#trusted-setup).
 
-> For Nethermind team: addresses of the deployed contracts
+2. Generate the zk-SNARK proof:
 
-> Verifier [0x03fccef14896283163799b884d2aa2ca85af2b84c012bf99cccfe6cbc4ef3c17](https://sepolia.voyager.online/contract/0x03fccef14896283163799b884d2aa2ca85af2b84c012bf99cccfe6cbc4ef3c17)
+    ```bash
+    snarkjs groth16 prove withdraw_0001.zkey witness.wtns proof.json public.json
+    ```
 
-> Pool [0x0239d646891ee20f88e3f611f8acb627cf3a2195893b423ba2da6a021bf0a6bc](https://sepolia.voyager.online/contract/0x0239d646891ee20f88e3f611f8acb627cf3a2195893b423ba2da6a021bf0a6bc#accountCalls)
+### Verifier Deployment
 
-If you already have garaga installed, you can proceed with starknado-cash
+1. Generate the verifier contract:
 
-<details>
-<summary>Compiling the circuit (It's similar to the process described in the section above)</summary>
+    ```bash
+    garaga gen --vk verification_key.json --system groth16
+    ```
 
-```c++
-pragma circom 2.0.0;
+2. Compile and declare the contract:
 
-include "circomlib/circuits/poseidon.circom";
+    ```bash
+    starkli declare target/dev/starknado_zk_2_Groth16VerifierBN254.contract_class.json --compiler-version 2.7.1 --account account.json --max-fee-raw 22195018311634378
+    ```
 
-template Withdraw() {
-    // Inputs
-    signal input commitmentHash;     // Commitment stored on-chain
-    signal input nullifier;          // User's secret (nullifier)
+3. Deploy the verifier contract:
 
-    // Output
-    signal output validWithdrawal;   // Output whether the withdrawal is valid
+    ```bash
+    starkli deploy 0x07ec0b2aa08e4cd748ae9aaba879836484e4b2c8d8834e46ca5bef321f9d37c3
+    ```
 
-    // Constraints
-    // Instantiate the Poseidon hash function component
-    signal computedCommitment;
-    component poseidon = Poseidon(1);  // Poseidon with 1 input signal
+### Pool Contract Deployment
 
-    // Feed the nullifier to the Poseidon hash function
-    poseidon.inputs[0] <== nullifier;
+1. Declare the pool contract:
 
-    // Get the computed commitment (output from Poseidon hash)
-    computedCommitment <== poseidon.out;
+    ```bash
+    starkli declare target/dev/starknado_zk_2_Pool.contract_class.json --account account.json
+    ```
 
-    // Ensure the computed commitment matches the on-chain commitment
-    signal difference;
-    difference <== computedCommitment - commitmentHash;
+2. Deploy the pool contract:
 
-    // Check if difference is zero by using a quadratic constraint
-    validWithdrawal <== 1 - difference * difference;  // If difference is 0, validWithdrawal will be 1
-}
+    ```bash
+    starkli deploy 0x004dd2b672cac7e7fb91f96eb272faf86e81254c80ea763f5d72d583e6d3753d 0x04718f5a0Fc34cC1AF16A1cdee98fFB20C31f5cD61D6Ab07201858f4287c938D 0x03fccef14896283163799b884d2aa2ca85af2b84c012bf99cccfe6cbc4ef3c17
+    ```
 
-component main {public [commitmentHash]} = Withdraw();
+### Call Deposit
 
-```
+1. Call the `deposit` method:
 
-## compile circuit:
+    ```bash
+    starkli invoke 0x0239d646891ee20f88e3f611f8acb627cf3a2195893b423ba2da6a021bf0a6bc deposit <YOUR_COMMITMEN_HASH> <YOUR_GEN_CALLDATA> 1 --account account.json
+    ```
 
-`circom withdraw.circom --r1cs --wasm --sym --c`
+### Call Withdraw
 
-## generate witness (set of inputs, intermediate signals, and output):
+1. Call the `withdraw` method:
 
-access folder with generated files (go here to generate hash https://poseidon-hash.online/)
-`cd withdraw_js`
-`node generate_witness.js withdraw.wasm input.json witness.wtns`
+    ```bash
+    starkli invoke 0x0239d646891ee20f88e3f611f8acb627cf3a2195893b423ba2da6a021bf0a6bc withdraw <YOUR_GEN_CALLDATA> 1 --account account.json
+    ```
 
-we'll use the witness to generate the actual proof
-
-we need a trusted setup: (go back 1 folder)
-
-## powers of tau
-
-`snarkjs powersoftau new bn128 12 pot12_0000.ptau -v`
-
-## ceremony
-
-`snarkjs powersoftau contribute pot12_0000.ptau pot12_0001.ptau --name="First contribution" -v`
-
-## phase 2
-
-`snarkjs powersoftau prepare phase2 pot12_0001.ptau pot12_final.ptau -v`
-
-## generating .zkey
-
-`snarkjs groth16 setup withdraw.r1cs pot12_final.ptau withdraw_0000.zkey`
-
-## contributing to phase 2 of ceremony
-
-`snarkjs zkey contribute withdraw_0000.zkey withdraw_0001.zkey --name="1st Contributor Name" -v`
-
-## export verification key:
-
-`snarkjs zkey export verificationkey withdraw_0001.zkey verification_key.json`
-
-## generate zk proof
-
-once the witness is computed and the trusted setup is already executed, we can generate a zk-proof associated to the circuit and the witness:
-(copy witness.wtns to from multiplier_js folder)
-`snarkjs groth16 prove withdraw_0001.zkey witness.wtns proof.json public.json`
-
-</details>
-
-## generate verifier
-
-```bash
-garaga gen --vk verification_key.json --system groth16
-cd to the generated cairo project
-scarb build
-```
-
-## declare and deploy verifier
-
-```bash
-starkli declare target/dev/starknado_zk_2_Groth16VerifierBN254.contract_class.json --compiler-version 2.7.1 --account account.json --max-fee-raw 22195018311634378 --keystore keystore.json
-#class hash: 0x07ec0b2aa08e4cd748ae9aaba879836484e4b2c8d8834e46ca5bef321f9d37c3
-```
-
-```bash
-starkli deploy 0x07ec0b2aa08e4cd748ae9aaba879836484e4b2c8d8834e46ca5bef321f9d37c3 --account account.json --keystore keystore.json`
-#deployed address: 0x03fccef14896283163799b884d2aa2ca85af2b84c012bf99cccfe6cbc4ef3c17
-```
-
-```bash
-cd ..
-garaga verify-onchain --system groth16 --contract-address 0x03fccef14896283163799b884d2aa2ca85af2b84c012bf99cccfe6cbc4ef3c17 --vk verification_key.json --proof proof.json --public-inputs public.json --env-file .secrets --network sepolia
-```
-
-## declare and deploy pool contract
-
-declare:
-
-```bash
-starkli declare target/dev/starknado_zk_2_Pool.contract_class.json --account account.json --keystore keystore.json
-#class hash: 0x004dd2b672cac7e7fb91f96eb272faf86e81254c80ea763f5d72d583e6d3753d
-```
-
-deploy:
-
-```bash
-#class hash, token address-I use STRK,verifier contract
-starkli deploy 0x004dd2b672cac7e7fb91f96eb272faf86e81254c80ea763f5d72d583e6d3753d 0x04718f5a0Fc34cC1AF16A1cdee98fFB20C31f5cD61D6Ab07201858f4287c938D 0x03fccef14896283163799b884d2aa2ca85af2b84c012bf99cccfe6cbc4ef3c17 --account account.json --keystore keystore.json
-#contract deployed!!!
-#0x0239d646891ee20f88e3f611f8acb627cf3a2195893b423ba2da6a021bf0a6bc
-```
-
-## generate calldata
-
-You need to run this script: https://github.com/keep-starknet-strange/garaga/blob/main/hydra/garaga/starknet/groth16_contract_generator/calldata.py
-
-## call deposit
-
-```bash
-starkli invoke 0x0239d646891ee20f88e3f611f8acb627cf3a2195893b423ba2da6a021bf0a6bc deposit <YOUR_COMMITMEN_HASH> <YOUR_GEN_CALLDATA> 1 -account account.json --keystore keystore.json
-```
-
-## call withdraw
-
-commitmenthash: Span<felt252>, amount: u256, secret: felt252
-
-```bash
-starkli invoke 0x0239d646891ee20f88e3f611f8acb627cf3a2195893b423ba2da6a021bf0a6bc withdraw  <YOUR_GEN_CALLDATA>  1 <YOUR_COMMITMEN_HASH>  -account account.json --keystore keystore.json
-```
-
-</details>
+---
