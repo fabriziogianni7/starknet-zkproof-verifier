@@ -82,9 +82,13 @@ use starknet::storage::StoragePointerReadAccess;
         fn withdraw(ref self: ContractState, commitmenthash: felt252,  amount: u256, secret: felt252) {
             // TODO, make sure I cannot recall this with the same proof
             
-            // call verifier
+            let proof_data: Array<felt252> = array!["proof","8645981980787649023086883978738420856660271013038108762834452721572614684349"];
 
-            IGroth16VerifierBN254Dispatcher { contract_address: self.verifier_contract }.verify_groth16_proof_bn254()
+            // Convert the array to a Span
+           let proof_span: Span<felt252> = proof_data.span();
+           let verifier_address: ContractAddress = self.verifier_contract.read().contract_address;
+            // call verifier
+            let return_value: bool = IGroth16VerifierBN254Dispatcher { contract_address:  verifier_address }.verify_groth16_proof_bn254(proof_span);
 
             
         }
