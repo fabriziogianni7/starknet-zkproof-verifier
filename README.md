@@ -1,5 +1,10 @@
 # Starknet zkProof Verifier
 
+
+<p align="center">
+  <img src="https://github.com/fabriziogianni7/starknet-zkproof-verifier/blob/master/sn-verifier-logo.png" alt="sn-verifier-logo" />
+</p>
+
 This repository demonstrates how to verify zk-SNARKs on Starknet using [Circom](https://docs.circom.io/) and [Garaga](https://felt.gitbook.io/garaga).
 
 It contains:
