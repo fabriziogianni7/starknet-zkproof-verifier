@@ -28,6 +28,9 @@ It contains:
   - [Pool Contract Deployment](#pool-contract-deployment)
   - [Call Deposit](#call-deposit)
   - [Call Withdraw](#call-withdraw)
+- [Deployed Contracts](#deployed-contracts)
+  - [General zk-SNARK Verification Contracts](#general-zk-snark-verification-contracts)
+  - [Starknado Cash Contracts](#starknado-cash-contracts)
 
 ---
 
@@ -266,5 +269,16 @@ Starknado Cash demonstrates how to send private transactions on Starknet using z
     ```bash
     starkli invoke 0x0239d646891ee20f88e3f611f8acb627cf3a2195893b423ba2da6a021bf0a6bc withdraw <YOUR_GEN_CALLDATA> 1 --account account.json
     ```
+
+## Deployed Contracts
+### General zk-SNARK Verification Contracts
+> Verifier [0x05a45ee09946804dfe21c3da0448cd9efcd6971d3eed4efacc866e17f1d38f2d](https://sepolia.voyager.online/contract/0x05a45ee09946804dfe21c3da0448cd9efcd6971d3eed4efacc866e17f1d38f2d)
+### Starknado Cash Contracts
+
+> Verifier [0x03fccef14896283163799b884d2aa2ca85af2b84c012bf99cccfe6cbc4ef3c17](https://sepolia.voyager.online/contract/0x03fccef14896283163799b884d2aa2ca85af2b84c012bf99cccfe6cbc4ef3c17)
+
+> Pool [0x0239d646891ee20f88e3f611f8acb627cf3a2195893b423ba2da6a021bf0a6bc](https://sepolia.voyager.online/contract/0x0239d646891ee20f88e3f611f8acb627cf3a2195893b423ba2da6a021bf0a6bc#accountCalls)
+
+
 
 ---
