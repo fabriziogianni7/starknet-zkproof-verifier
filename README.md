@@ -11,7 +11,7 @@ It contains:
 - A [general example](https://github.com/fabriziogianni7/starknet-zkproof-verifier/tree/master/general-zk-verification-example) of zk-SNARK verification.
 - An implementation of private transaction in [Tornado Cash](https://github.com/tornadocash) fashion on Starknet.
 
-> If you're lazy and don't want to go over all the README, just have a look to this contracts: [pool.cairo](https://github.com/fabriziogianni7/starknet-zkproof-verifier/blob/master/starknado_cash/starknado_zk_2/src/pool.cairo) & [groth16_verifier.cairo](https://github.com/fabriziogianni7/starknet-zkproof-verifier/blob/master/starknado_cash/starknado_zk_2/src/groth16_verifier.cairo). Here is the logic for starknado-cash, which demonstrate how to verify a zk-SNARK on Starknet.
+> If you're lazy and don't want to go over all the README, just have a look to this contracts: [pool.cairo](https://github.com/fabriziogianni7/starknet-zkproof-verifier/blob/master/starknado_cash/starknado_zk_2/src/pool.cairo) & [groth16_verifier.cairo](https://github.com/fabriziogianni7/starknet-zkproof-verifier/blob/master/starknado_cash/starknado_zk_2/src/groth16_verifier.cairo). Here is the logic for (a simplified) starknado-cash, which demonstrate how to verify a zk-SNARK on Starknet.
 
 
 ---
