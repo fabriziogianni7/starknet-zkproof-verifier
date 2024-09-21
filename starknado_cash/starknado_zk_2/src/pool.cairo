@@ -82,7 +82,6 @@ use starknet::storage::StoragePointerReadAccess;
             if(amount == 0){
                 panic!("amount is not enough")
             }
-            self.commitment_hash_to_amount.entry(commitmenthash).write(0);
 
             // Convert the array to a Span
             //    let proof_span: Span<felt252> = proof_data.span();
@@ -90,6 +89,7 @@ use starknet::storage::StoragePointerReadAccess;
             // call verifier
             let is_proof_valid: bool = IGroth16VerifierBN254Dispatcher { contract_address:  verifier_address }.verify_groth16_proof_bn254(proof);
 
+            self.commitment_hash_to_amount.entry(commitmenthash).write(0);
             if(is_proof_valid){
                 let caller = get_caller_address();
                 self.transfer_token.read().transfer(caller, amount);
