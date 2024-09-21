@@ -9,7 +9,7 @@ This repository demonstrates how to verify zk-SNARKs on Starknet using [Circom](
 
 It contains:
 - A [general example](https://github.com/fabriziogianni7/starknet-zkproof-verifier/tree/master/general-zk-verification-example) of zk-SNARK verification.
-- An implementation of [Tornado Cash](https://github.com/tornadocash) on Starknet.
+- An implementation of private transaction in [Tornado Cash](https://github.com/tornadocash) fashion on Starknet.
 
 ---
 
