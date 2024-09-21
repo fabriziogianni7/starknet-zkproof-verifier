@@ -83,8 +83,7 @@ use starknet::storage::StoragePointerReadAccess;
                 panic!("amount is not enough")
             }
 
-            // Convert the array to a Span
-            //    let proof_span: Span<felt252> = proof_data.span();
+            //todo not sure here
            let verifier_address: ContractAddress = self.verifier_contract.read().contract_address;
             // call verifier
             let is_proof_valid: bool = IGroth16VerifierBN254Dispatcher { contract_address:  verifier_address }.verify_groth16_proof_bn254(proof);
