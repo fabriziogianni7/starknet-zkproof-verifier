@@ -1,0 +1,1 @@
+{"version":1,"contracts":[{"id":"22u5d4fum6o88","package_name":"starknado_zk_2","contract_name":"Groth16VerifierBN254","module_path":"starknado_zk_2::groth16_verifier::Groth16VerifierBN254","artifacts":{"sierra":"starknado_zk_2_Groth16VerifierBN254.contract_class.json","casm":"starknado_zk_2_Groth16VerifierBN254.compiled_contract_class.json"}}]}
