@@ -20,24 +20,22 @@ trait IGroth16VerifierBN254<TContractState> {
 #[starknet::interface]
 trait IPool<TContractState> {
     fn deposit(
-        ref self: TContractState, commitmenthash:felt252,
+        ref self: TContractState, commitmenthash: felt252, span: Span<felt252>,
         amount: u256
     ) ;
     fn withdraw(
-        ref self: TContractState, commitmenthash: felt252,  amount: u256, secret: felt252
-    );
+        ref self: TContractState, commitmenthash: Span<felt252>,  amount: u256, secret: felt252
+    ) -> bool;
 }
 
 #[starknet::contract]
 mod Pool {
 
-    use starknet::storage::StorageMapWriteAccess;
 use starknet::storage::StoragePointerReadAccess;
-    use starknet::storage::StoragePointerWriteAccess;
     use starknet::storage::{
-        Map
+        Map,StoragePathEntry,StoragePointerWriteAccess
     };
-    use starknet::{ContractAddress, get_caller_address, get_block_timestamp, get_contract_address};
+    use starknet::{ContractAddress, get_caller_address, get_contract_address};
     use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
     use super::{IGroth16VerifierBN254Dispatcher, IGroth16VerifierBN254DispatcherTrait};
 
@@ -65,11 +63,10 @@ use starknet::storage::StoragePointerReadAccess;
         
         // this function need to add commitment<->amount
         // transfer token from caller to this contract
-        fn deposit(ref self: ContractState, commitmenthash: felt252,  amount: u256) {
-            
-            self.commitment_hash_to_amount.write(commitmenthash, amount);
+        // commitmenthash is the hash
+        fn deposit(ref self: ContractState, commitmenthash: felt252,span: Span<felt252>,  amount: u256) {
 
-
+            self.commitment_hash_to_amount.entry(commitmenthash).write(amount);
             let caller = get_caller_address();
             let this = get_contract_address();
             self.transfer_token.read().transfer_from(caller, this, amount);
@@ -79,16 +76,21 @@ use starknet::storage::StoragePointerReadAccess;
         // should verify the secret.
         // should accept the amount, the commitmenthas and the secret
         // should invoke the verifier
-        fn withdraw(ref self: ContractState, commitmenthash: felt252,  amount: u256, secret: felt252) {
+        fn withdraw(ref self: ContractState, commitmenthash: Span<felt252>,  amount: u256, secret: felt252) -> bool{
             // TODO, make sure I cannot recall this with the same proof
             
-            let proof_data: Array<felt252> = array!["proof","8645981980787649023086883978738420856660271013038108762834452721572614684349"];
+            // let proof_data: Array<felt252> = array![
+            //     'proof', // This is a short string constant, represented as a felt252
+            //     0x8645981980787649023086883978738420856660271013038108762834452721572614684349_felt252 // This is a felt252 literal
+            //     ];
 
             // Convert the array to a Span
-           let proof_span: Span<felt252> = proof_data.span();
+            //    let proof_span: Span<felt252> = proof_data.span();
            let verifier_address: ContractAddress = self.verifier_contract.read().contract_address;
             // call verifier
-            let return_value: bool = IGroth16VerifierBN254Dispatcher { contract_address:  verifier_address }.verify_groth16_proof_bn254(proof_span);
+            let return_value: bool = IGroth16VerifierBN254Dispatcher { contract_address:  verifier_address }.verify_groth16_proof_bn254(commitmenthash);
+
+            return return_value;
 
             
         }
