@@ -24,7 +24,7 @@ trait IPool<TContractState> {
         amount: u256
     ) ;
     fn withdraw(
-        ref self: TContractState, commitmenthash: felt252,  amount: u256, secret: felt252, proof:Span<felt252>
+        ref self: TContractState, commitmenthash: felt252, secret: felt252, proof:Span<felt252>
     ) -> bool;
 }
 
@@ -76,8 +76,12 @@ use starknet::storage::StoragePointerReadAccess;
         // should verify the secret.
         // should accept the amount, the commitmenthas and the secret
         // should invoke the verifier
-        fn withdraw(ref self: ContractState, commitmenthash: felt252,  amount: u256, secret: felt252, proof:Span<felt252>) -> bool{
-            // make sure I cannot recall this with the same proof
+        fn withdraw(ref self: ContractState, commitmenthash: felt252, secret: felt252, proof:Span<felt252>) -> bool{
+            // todo make sure I cannot recall this with the same proof
+            let amount = self.commitment_hash_to_amount.entry(commitmenthash).read();
+            if(amount == 0){
+                panic!("amount is not enough")
+            }
             self.commitment_hash_to_amount.entry(commitmenthash).write(0);
 
             // Convert the array to a Span
@@ -87,6 +91,8 @@ use starknet::storage::StoragePointerReadAccess;
             let is_proof_valid: bool = IGroth16VerifierBN254Dispatcher { contract_address:  verifier_address }.verify_groth16_proof_bn254(proof);
 
             if(is_proof_valid){
+                let caller = get_caller_address();
+                self.transfer_token.read().transfer(caller, amount);
                 return is_proof_valid;
             }
             panic!("proof is not valid!")
